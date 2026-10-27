@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
+.ipynb_checkpoints/
+
+# Generated at run time
+python/data/
+python/models/
+python/results/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# Office temp files
+~$*
