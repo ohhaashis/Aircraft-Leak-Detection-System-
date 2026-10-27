@@ -46,7 +46,8 @@ def ae_features(samples, baseline=2048.0, threshold=150.0, fs=FS):
     dur_ms = dur_samples / fs * 1e3
 
     # Dominant frequency: Hann-windowed FFT of the first FFT_N samples
-    seg = xc[:FFT_N] * np.hanning(min(FFT_N, len(xc)))
+    seg = x[:FFT_N] - x[:FFT_N].mean()
+    seg = seg * np.hanning(len(seg))
     spec = np.abs(np.fft.rfft(seg, n=FFT_N))
     freqs = np.fft.rfftfreq(FFT_N, 1 / fs)
     valid = freqs >= F_MIN

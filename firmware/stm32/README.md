@@ -1,8 +1,28 @@
 # STM32F411 Acoustic-Emission Firmware — Specification
 
-> **Status: to be implemented.** This document is the contract the firmware must meet.
-> `ae_protocol_test/` contains a small sketch that sends *fake* AE lines so the ESP32 merge
-> and the whole Python pipeline can be tested before this firmware exists.
+> **Status: implemented** in `ae_firmware/ae_firmware.ino` (Arduino IDE + STM32duino).
+> Compiles for the Black Pill F411CE (STM32duino core 3.0.0; also written for 2.x), uses 34 % of RAM.
+> Its feature maths was run on a PC with four synthetic test signals and matched
+> `python/ae_reference.py` exactly. **Not yet tested on real hardware.**
+> `ae_protocol_test/` sends *fake* AE lines, useful for testing the ESP32 link on its own.
+
+## Flashing (Arduino IDE)
+
+1. File → Preferences → Additional boards manager URLs:
+   `https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json`
+2. Boards Manager → install **STM32 MCU based boards**.
+3. Tools → Board: **Generic STM32F4 series** · Board part number: **BlackPill F411CE** ·
+   USB support: **CDC (generic 'Serial' supersede U(S)ART)** · Optimize: **Faster (-O2)** ·
+   Upload method: **STM32CubeProgrammer (DFU)** (install STM32CubeProgrammer first).
+4. Put the board in DFU mode: hold **BOOT0**, tap **NRST**, release BOOT0. Click Upload.
+5. Tap NRST to run. Open Serial Monitor on the board's USB port: you should see `$AE,...` lines.
+   Send `S` for status (check `dropped=0`), and `Z` with the pump OFF to tare.
+
+## First tests
+
+- Inputs floating or at 1.65 V → small `rms`, `hits` = 0.
+- Function generator (40 kHz sine, 0.5 Vpp, 1.65 V offset) into PA1 → AE1 `fdom` ≈ 40000, `rms` ≈ 220.
+- `dropped` must stay 0; if not, the main loop is too slow (report it).
 
 ## Job
 

@@ -7,7 +7,11 @@
  * Optional: a potentiometer on PA1 (0-3.3 V) makes channel 1's "loudness" follow the knob,
  * so you can see the AE1 columns change on the laptop.
  */
-HardwareSerial AeSerial(PA10, PA9);   // RX, TX (USART1)
+#if defined(STM32_CORE_VERSION_MAJOR) && (STM32_CORE_VERSION_MAJOR >= 3)
+Uart AeSerial(PA10, PA9);             // USART1: RX, TX (STM32duino core 3.x)
+#else
+HardwareSerial AeSerial(PA10, PA9);   // USART1: RX, TX (STM32duino core 2.x)
+#endif
 
 uint32_t seq = 0, last = 0;
 

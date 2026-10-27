@@ -27,8 +27,8 @@
 | Part | Status |
 |---|---|
 | Hydraulic loop | Built |
-| ESP32 firmware (pressure, flow, AE merge) | Written; hardware testing pending |
-| STM32 AE firmware | Specified (`firmware/stm32/README.md`); to be implemented |
+| ESP32 firmware (pressure, flow, AE merge) | Written, compiles; hardware testing pending |
+| STM32 AE firmware | Written, compiles, maths verified vs Python reference; hardware testing pending |
 | Python logger, features, training, dashboard | Written; tested on simulated data |
 | Leak points L2, L3 | To be built |
 | Real data collection | Pending |

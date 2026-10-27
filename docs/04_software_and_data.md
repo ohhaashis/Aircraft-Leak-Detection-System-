@@ -19,7 +19,8 @@ Install Python libraries: `cd python && pip install -r requirements.txt`.
 | File | Runs on | What it does |
 |---|---|---|
 | `firmware/esp32/leak_daq/leak_daq.ino` | ESP32 | Pressure (ADS1115), flow (interrupts), merges STM32 AE line, sends 43-column row every 100 ms |
-| `firmware/stm32/README.md` | — | Specification of the STM32 AE firmware (to be implemented) |
+| `firmware/stm32/ae_firmware/ae_firmware.ino` | STM32 | Samples PA1–PA4 at 200 kHz, computes 9 features per channel every 100 ms, sends `$AE` line to ESP32 |
+| `firmware/stm32/README.md` | — | STM32 specification, flashing steps and first tests |
 | `firmware/stm32/ae_protocol_test/` | STM32 | Sends fake AE lines to test the ESP32 merge |
 | `python/config.py` | Laptop | Serial port, column list, windows, class names, rig geometry, alarm settings |
 | `python/logger.py` | Laptop | Records one labelled run → `data/raw/run_XXXX.csv` + `.json` |

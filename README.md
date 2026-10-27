@@ -91,7 +91,7 @@ Full walkthrough, including the live rig demo: **[docs/07_demo_guide.md](docs/07
 │   └── images/
 ├── firmware/
 │   ├── esp32/leak_daq/leak_daq.ino    Pressure + flow + AE merge → laptop
-│   └── stm32/                         AE firmware specification + protocol test sketch
+│   └── stm32/ae_firmware/             PZT sampling at 200 kHz + 9 features → ESP32 (+ test sketch)
 ├── python/
 │   ├── config.py  logger.py  features.py  train.py  dashboard.py
 │   ├── simulate.py  ae_reference.py  requirements.txt
@@ -107,8 +107,8 @@ Full walkthrough, including the live rig demo: **[docs/07_demo_guide.md](docs/07
 |---|---|
 | Hydraulic loop | ✅ Built |
 | Python pipeline (logger, features, training, dashboard) | ✅ Written, tested on simulated data |
-| ESP32 firmware | ✅ Written · hardware testing pending |
-| STM32 acoustic firmware | 📝 Specified · to be implemented |
+| ESP32 firmware | ✅ Written, compiles · hardware testing pending |
+| STM32 acoustic firmware | ✅ Written, compiles, maths verified vs Python reference · hardware testing pending |
 | Leak points L2, L3 · PZT saddles | 🔧 To be built |
 | Real data collection and results | ⏳ Pending |
 

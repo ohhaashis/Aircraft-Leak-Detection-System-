@@ -77,8 +77,8 @@ calibrated, PZT channels checked on an oscilloscope.
 
 1. **ESP32:** Arduino IDE → board "ESP32 Dev Module" → install "Adafruit ADS1X15" → open
    `firmware/esp32/leak_daq/leak_daq.ino` → Upload (hold BOOT if it hangs at "Connecting…").
-2. **STM32:** flash the AE firmware (see `firmware/stm32/README.md`). Until it exists, flash
-   `ae_protocol_test` to test the link with fake AE data.
+2. **STM32:** flash `firmware/stm32/ae_firmware/ae_firmware.ino` (steps in `firmware/stm32/README.md`).
+   To test the ESP32 link alone, `ae_protocol_test` sends fake AE data instead.
 3. Serial Monitor at 115200 baud: you should see `# Group32 leak DAQ v2 ready`, the header line and
    rows of numbers. No STM32 data → a warning line and zeros in the AE columns.
 
