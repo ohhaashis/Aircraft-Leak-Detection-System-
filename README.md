@@ -118,7 +118,7 @@ Full walkthrough, including the live rig demo: **[docs/07_demo_guide.md](docs/07
 |---|---|---|
 | Ashish Kumar | DSAI | ML, features, software ,STM32 firmware, dashboard |
 | Aman Kumar | CSE | STM32 firmware, dashboard ,ESP32, pressure/flow, calibration  ,Acoustic|
-| Nishant Thamman | ME | Hydraulic rig, mounts, leak points ,Acoustic , ESP32, power|
+| Nishant Thamman | ME | Hydraulic rig, mounts, leak points ,Acoustic , ESP32, power, pressure/flow|
 | Badavath Thirumalesh | EE | Acoustic front-end, power |
 | Bhoomika | GE | ESP32, pressure/flow, calibration |
 | Ananya Sharma | MSE | Data collection, report |
