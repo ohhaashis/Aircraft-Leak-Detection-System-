@@ -30,7 +30,11 @@ LOOP = [(0, 0), (0, 4), (5, 4), (5, 0)]  # open rectangle: left edge, top edge, 
 SENSORS = {
     "PT1/FS1 (inlet)":  (5, 0.4),
     "PT2/FS2 (outlet)": (0, 0.4),
-    "PZT1": (5, 1.4), "PZT2": (3.8, 4), "PZT3": (1.2, 4), "PZT4": (0, 1.4),
+    # New PZT plan (hose isolates the top tee). PLACEHOLDER positions: replace with measured ones.
+    "PZT1": (2.7, 4),   # metal nipple/tee at the L1 valve
+    "PZT2": (5, 2.0),   # right steel run, near L2
+    "PZT3": (0, 2.0),   # left steel run, near L3
+    "PZT4": (4.3, 4),   # top run, reference
 }
 LEAKS = {1: (2.5, 4), 2: (5, 2.6), 3: (0, 2.6)}  # L1 = centre T valve, L2/L3 = drilled holes
 

@@ -3,12 +3,28 @@ before the rig exists. The physics is rough and invented: never report these res
 Delete data/raw/ before recording real runs.      Usage:  python simulate.py --runs 24"""
 import argparse, json, os
 import numpy as np
-from config import RAW_COLUMNS
+from config import RAW_COLUMNS, LOOP, SENSORS, LEAKS
 
 rng = np.random.default_rng(0)
-# Positions measured along the pipe from the pump outlet (feet), matching config.py
-PZT_S = np.array([1.4, 5.2, 7.8, 11.6])
-LEAK_S = {1: 6.5, 2: 2.6, 3: 10.4}
+
+
+def along_pipe(pt):
+    """Distance (ft) along the loop from the pump to a point on config.LOOP.
+    LOOP is listed from the outlet end; the pump feeds the other end."""
+    pts = np.array(LOOP, float)
+    segs = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+    s, p = 0.0, np.array(pt, float)
+    for a, b, seg in zip(pts[:-1], pts[1:], segs):
+        t = np.dot(p - a, b - a) / seg ** 2
+        if 0 <= t <= 1 and np.linalg.norm(a + t * (b - a) - p) < 1e-6:
+            return segs.sum() - (s + t * seg)
+        s += seg
+    raise ValueError(f"{pt} is not on config.LOOP")
+
+
+# Positions along the pipe from the pump (feet), taken from config.py
+PZT_S = np.array([along_pipe(SENSORS[f"PZT{i}"]) for i in range(1, 5)])
+LEAK_S = {k: along_pipe(p) for k, p in LEAKS.items()}
 
 
 def make_run(label, valve, speed, transient, seconds=90):

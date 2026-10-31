@@ -34,7 +34,8 @@ Maintenance-aid demonstrator, not certified. Team lead for software: Ashish (DSA
 - ESP32 and STM32 firmware compile; NOT yet run on hardware.
 - Rig built but not commissioned: missing clamps, loop not closed, flow sensors mounted flat (label must
   be vertical), L2/L3 not drilled, PZT saddles not made, buck converter not set to 5.0 V.
-- `config.py` geometry is a placeholder and still has the OLD PZT plan.
+- `config.py` geometry uses the NEW PZT plan but positions are placeholders (not measured).
+  simulate.py reads PZT/leak positions from config.py, so it follows any edit there.
 
 ## Decisions to respect
 - New PZT plan (hose isolates the top tee): PZT1 on metal nipple/tee at L1 valve, PZT2 right run (L2),
