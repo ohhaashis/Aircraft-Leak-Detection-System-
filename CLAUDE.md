@@ -30,8 +30,13 @@ Maintenance-aid demonstrator, not certified. Team lead for software: Ashish (DSA
 - Repo is private on GitHub (ohhaashis/Aircraft-Leak-Detection-System-).
 
 ## Current status (31 Oct 2026)
-- Software: all planned tools built (see below) and pushed to main. Whole pipeline works end to end on
-  simulated data only (simulate → check_runs → train → notebook → dashboard). Nothing tested on hardware.
+- Software: all planned tools built (see below) and pushed to main. Full check on 31 Oct (simulated data
+  only) passed: simulate → check_runs (24 OK) → train → analysis.ipynb in the venv kernel (8/8 cells) →
+  dashboard replay (L2 leak run: alarm at L2 after 2.5 s; no-leak run with knocks: no false alarm).
+  Not covered: the 45 s pump-speed steps were not replayed through the dashboard. Nothing tested on hardware.
+- Known open points (not fixed): the banner shows "NORMAL OPERATION | leak probability 100%" for the
+  ~2 s while 4 leak windows are being confirmed; on simulated data the leak-rate RF (MAE 0.055 L/min)
+  is worse than plain Q1 − Q2 (0.014), and the dashboard shows the RF estimate during an alarm.
 - Data: python/data/raw holds 24 SIMULATED runs made with the new PZT plan; models/ and results/ were
   trained on them. AE fingerprint on this data: L1→PZT1, L2→PZT2, L3→PZT3 (simulated, not evidence).
 - Firmware: NOT yet run on hardware. STM32 compiles. ESP32 is now v2.1 (K in flash via Preferences,
@@ -43,7 +48,8 @@ Maintenance-aid demonstrator, not certified. Team lead for software: Ashish (DSA
   be vertical), L2/L3 not drilled, PZT saddles not made, buck converter not set to 5.0 V.
 - `config.py` geometry uses the NEW PZT plan but positions are placeholders (not measured; PZT4 spot on
   the top run was guessed). simulate.py reads PZT/leak positions from config.py, so it follows any edit.
-- ipykernel not yet installed in the venv (needed to open analysis.ipynb in VS Code).
+- ipykernel installed in the venv and listed in requirements.txt; in VS Code pick the python\venv kernel.
+- Git: only the main branch exists (locally and on GitHub).
 
 ## Decisions to respect
 - New PZT plan (hose isolates the top tee): PZT1 on metal nipple/tee at L1 valve, PZT2 right run (L2),
