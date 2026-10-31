@@ -111,53 +111,58 @@ def check_json(path, csv_name):
     return fail, warn, meta
 
 
-p = argparse.ArgumentParser()
-p.add_argument("--dir", default="data/raw")
-p.add_argument("--min-seconds", type=float, default=50, help="warn if a run is shorter (plan: 60 s)")
-args = p.parse_args()
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--dir", default="data/raw")
+    p.add_argument("--min-seconds", type=float, default=50, help="warn if a run is shorter (plan: 60 s)")
+    args = p.parse_args()
 
-csvs = sorted(glob.glob(os.path.join(args.dir, "run_*.csv")))
-if not csvs:
-    raise SystemExit(f"No run_*.csv files in {args.dir}")
+    csvs = sorted(glob.glob(os.path.join(args.dir, "run_*.csv")))
+    if not csvs:
+        raise SystemExit(f"No run_*.csv files in {args.dir}")
 
-results, ids, simulated = [], {}, 0
-for csv in csvs:
-    name = os.path.basename(csv)[:-4]
-    f1, w1, meta = check_json(csv[:-4] + ".json", name)
-    f2, w2, secs = check_csv(csv, args.min_seconds)
-    if meta and "run_id" in meta:
-        ids.setdefault(meta["run_id"], []).append(name)
-    if meta and "SIMULATED" in str(meta.get("condition", "")):
-        simulated += 1
-    results.append([name, meta, secs, f1 + f2, w1 + w2])
+    results, ids, simulated = [], {}, 0
+    for csv in csvs:
+        name = os.path.basename(csv)[:-4]
+        f1, w1, meta = check_json(csv[:-4] + ".json", name)
+        f2, w2, secs = check_csv(csv, args.min_seconds)
+        if meta and "run_id" in meta:
+            ids.setdefault(meta["run_id"], []).append(name)
+        if meta and "SIMULATED" in str(meta.get("condition", "")):
+            simulated += 1
+        results.append([name, meta, secs, f1 + f2, w1 + w2])
 
-for rid, names in ids.items():         # duplicate run_id breaks the train/test split by run
-    if len(names) > 1:
-        for r in results:
-            if r[0] in names:
-                r[3].append(f"run_id {rid} also used by {', '.join(n for n in names if n != r[0])}")
+    for rid, names in ids.items():         # duplicate run_id breaks the train/test split by run
+        if len(names) > 1:
+            for r in results:
+                if r[0] in names:
+                    r[3].append(f"run_id {rid} also used by {', '.join(n for n in names if n != r[0])}")
 
-for name, meta, secs, fail, warn in results:
-    label = meta.get("label", "?") if meta else "?"
-    status = "FAIL" if fail else "WARN" if warn else "OK"
-    msgs = fail + warn
-    print(f"{name}  label {label}  {secs:5.1f} s  {status:4}  {msgs[0] if msgs else ''}")
-    for m in msgs[1:]:
-        print(" " * 34 + m)
-for orphan in sorted(glob.glob(os.path.join(args.dir, "run_*.json"))):
-    if not os.path.exists(orphan[:-5] + ".csv"):
-        print(f"{os.path.basename(orphan)}: JSON without CSV (ignored)")
+    for name, meta, secs, fail, warn in results:
+        label = meta.get("label", "?") if meta else "?"
+        status = "FAIL" if fail else "WARN" if warn else "OK"
+        msgs = fail + warn
+        print(f"{name}  label {label}  {secs:5.1f} s  {status:4}  {msgs[0] if msgs else ''}")
+        for m in msgs[1:]:
+            print(" " * 34 + m)
+    for orphan in sorted(glob.glob(os.path.join(args.dir, "run_*.json"))):
+        if not os.path.exists(orphan[:-5] + ".csv"):
+            print(f"{os.path.basename(orphan)}: JSON without CSV (ignored)")
 
-n_fail = sum(1 for r in results if r[3])
-n_warn = sum(1 for r in results if not r[3] and r[4])
-print(f"\n{len(results)} runs: {len(results) - n_fail - n_warn} OK, {n_warn} WARN, {n_fail} FAIL")
-print("Usable runs per class (OK + WARN):")
-for lab, cname in CLASS_NAMES.items():
-    good = [r for r in results if not r[3] and r[1] and r[1].get("label") == lab]
-    lpm = [r[1].get("leak_lpm", 0) or 0 for r in good]
-    extra = f", leak {min(lpm):.2f}-{max(lpm):.2f} L/min" if lab and good else ""
-    print(f"  {lab} {cname:26} {len(good):3d} runs, {sum(r[2] for r in good) / 60:5.1f} min{extra}")
-if simulated:
-    print(f"\nNOTE: {simulated} runs are SIMULATED. Delete data/raw before recording real data;"
-          " never report their scores.")
-sys.exit(1 if n_fail else 0)
+    n_fail = sum(1 for r in results if r[3])
+    n_warn = sum(1 for r in results if not r[3] and r[4])
+    print(f"\n{len(results)} runs: {len(results) - n_fail - n_warn} OK, {n_warn} WARN, {n_fail} FAIL")
+    print("Usable runs per class (OK + WARN):")
+    for lab, cname in CLASS_NAMES.items():
+        good = [r for r in results if not r[3] and r[1] and r[1].get("label") == lab]
+        lpm = [r[1].get("leak_lpm", 0) or 0 for r in good]
+        extra = f", leak {min(lpm):.2f}-{max(lpm):.2f} L/min" if lab and good else ""
+        print(f"  {lab} {cname:26} {len(good):3d} runs, {sum(r[2] for r in good) / 60:5.1f} min{extra}")
+    if simulated:
+        print(f"\nNOTE: {simulated} runs are SIMULATED. Delete data/raw before recording real data;"
+              " never report their scores.")
+    sys.exit(1 if n_fail else 0)
+
+
+if __name__ == "__main__":
+    main()

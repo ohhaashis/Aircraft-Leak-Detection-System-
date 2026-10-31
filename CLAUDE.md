@@ -48,11 +48,14 @@ Maintenance-aid demonstrator, not certified. Team lead for software: Ashish (DSA
 - Keep config.RAW_COLUMNS identical to the ESP32 header line; retrain after any feature change.
 - Delete python/data/raw, models, results (simulated) before recording real data.
 
+## Software built 31 Oct 2026 (tested on simulated data / fake ESP32 only, not on hardware)
+- check_runs.py (row counts, time gaps, stuck/zero sensors, JSON labels); its limits are imported by dashboard.py
+- calibrate_flow.py (K-factor from jug test, live or from a logged CSV)
+- analysis.ipynb (plots per run, leak vs no-leak, AE fingerprint, mass balance; needs `pip install ipykernel`)
+- dashboard: sensor-health panel, leak-probability chart, sidebar tare / record / silence alarm.
+  Dashboard recording writes the same files as logger.py; only one program can hold the COM port.
+
 ## Still to build (software)
-- check_runs.py (row counts, time gaps, stuck/zero AE columns, missing JSON labels)
-- calibrate_flow.py (K-factor from jug test)
-- analysis notebook (plots per run, leak vs no-leak, report figures)
-- dashboard: sensor-health panel, leak-probability chart, buttons (tare, record, silence alarm)
 - optional: Isolation Forest anomaly detector for untrained leak positions
 
 ## Style for answers
