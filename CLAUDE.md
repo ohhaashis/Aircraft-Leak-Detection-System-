@@ -30,12 +30,19 @@ Maintenance-aid demonstrator, not certified. Team lead for software: Ashish (DSA
 - Repo is private on GitHub (ohhaashis/Aircraft-Leak-Detection-System-).
 
 ## Current status (31 Oct 2026)
-- Software pipeline works end to end on simulated data (train + dashboard verified on the laptop).
-- ESP32 and STM32 firmware compile; NOT yet run on hardware.
+- Software: all planned tools built (see below) and pushed to main. Whole pipeline works end to end on
+  simulated data only (simulate → check_runs → train → notebook → dashboard). Nothing tested on hardware.
+- Data: python/data/raw holds 24 SIMULATED runs made with the new PZT plan; models/ and results/ were
+  trained on them. AE fingerprint on this data: L1→PZT1, L2→PZT2, L3→PZT3 (simulated, not evidence).
+- Firmware: ESP32 and STM32 compile; NOT yet run on hardware.
+  The ESP32 file in the repo is v2, not v2.1: K-factors are NOT saved in flash (flowK resets to 1.2 at
+  boot) and there are NO N or P commands (only Z, K, A1/A0). If v2.1 exists on a laptop, commit it;
+  until then set flowK[] in leak_daq.ino after calibrate_flow.py and re-flash.
 - Rig built but not commissioned: missing clamps, loop not closed, flow sensors mounted flat (label must
   be vertical), L2/L3 not drilled, PZT saddles not made, buck converter not set to 5.0 V.
-- `config.py` geometry uses the NEW PZT plan but positions are placeholders (not measured).
-  simulate.py reads PZT/leak positions from config.py, so it follows any edit there.
+- `config.py` geometry uses the NEW PZT plan but positions are placeholders (not measured; PZT4 spot on
+  the top run was guessed). simulate.py reads PZT/leak positions from config.py, so it follows any edit.
+- ipykernel not yet installed in the venv (needed to open analysis.ipynb in VS Code).
 
 ## Decisions to respect
 - New PZT plan (hose isolates the top tee): PZT1 on metal nipple/tee at L1 valve, PZT2 right run (L2),
