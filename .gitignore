@@ -18,3 +18,5 @@ Thumbs.db
 
 # Office temp files
 ~$*
+
+venv/
