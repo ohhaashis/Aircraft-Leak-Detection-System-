@@ -50,6 +50,18 @@ Maintenance-aid demonstrator, not certified. Team lead for software: Ashish (DSA
   the top run was guessed). simulate.py reads PZT/leak positions from config.py, so it follows any edit.
 - ipykernel installed in the venv and listed in requirements.txt; in VS Code pick the python\venv kernel.
 - Git: only the main branch exists (locally and on GitHub).
+- Bench test with fake sensors prepared, NOT yet run on the board: `#define BENCH_TEST_5HZ` in
+  leak_daq.ino (default 0 = not compiled; 1 = 5 Hz square wave on GPIO4 via esp_timer, jumper to
+  GPIO25/26; prints a '#' warning at boot and in P). Bench wiring: pot wiper directly on ADS1115 A0,
+  A1 and A2 to GND. Expected: Q1 = 5/K1 (4.167 at K1 = 1.2), C1 +5/s; untared P1 = 375·V_wiper − 125 kPa,
+  after Z P1 changes 375 kPa per volt. Checked on the PC with stand-ins; switch = 0 output byte-identical
+  to committed v2.1. Set it back to 0 after the bench test.
+- Report draft: docs/report_software_ml_draft.md (Software + ML sections) with no simulated numbers;
+  results to fill are marked [RESULT PENDING] (R1–R12) and team inputs [TEAM] (T1–T3), checklist at end.
+- Pending commit: the bench-test switch in leak_daq.ino and docs/report_software_ml_draft.md.
+- Docs out of date vs the code: docs/04 (says K resets at power-off; command list lacks N, P),
+  docs/05 (calls Random Forest "the main model"; train.py picks the best macro-F1 on set C),
+  docs/06 (still plans ≈70 runs × 90 s at 50/75/100 % instead of the data plan below).
 
 ## Decisions to respect
 - New PZT plan (hose isolates the top tee): PZT1 on metal nipple/tee at L1 valve, PZT2 right run (L2),
