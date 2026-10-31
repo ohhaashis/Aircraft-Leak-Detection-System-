@@ -8,3 +8,4 @@ pyserial
 streamlit>=1.37
 plotly
 scipy<1.15
+ipykernel
