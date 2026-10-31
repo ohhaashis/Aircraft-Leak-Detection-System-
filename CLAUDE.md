@@ -34,10 +34,11 @@ Maintenance-aid demonstrator, not certified. Team lead for software: Ashish (DSA
   simulated data only (simulate → check_runs → train → notebook → dashboard). Nothing tested on hardware.
 - Data: python/data/raw holds 24 SIMULATED runs made with the new PZT plan; models/ and results/ were
   trained on them. AE fingerprint on this data: L1→PZT1, L2→PZT2, L3→PZT3 (simulated, not evidence).
-- Firmware: ESP32 and STM32 compile; NOT yet run on hardware.
-  The ESP32 file in the repo is v2, not v2.1: K-factors are NOT saved in flash (flowK resets to 1.2 at
-  boot) and there are NO N or P commands (only Z, K, A1/A0). If v2.1 exists on a laptop, commit it;
-  until then set flowK[] in leak_daq.ino after calibrate_flow.py and re-flash.
+- Firmware: NOT yet run on hardware. STM32 compiles. ESP32 is now v2.1 (K in flash via Preferences,
+  commands N and P); v2.1 has NOT been compiled with the ESP32 core yet (this laptop has only the AVR
+  core). It was built and tested on the PC with stand-in libraries: CSV rows byte-identical to v2,
+  N/K/P/reboot behave as specified. N only rescales K2, so set K1 from the jug test first.
+  Pressure zeros are not stored in flash: send Z after every power-up.
 - Rig built but not commissioned: missing clamps, loop not closed, flow sensors mounted flat (label must
   be vertical), L2/L3 not drilled, PZT saddles not made, buck converter not set to 5.0 V.
 - `config.py` geometry uses the NEW PZT plan but positions are placeholders (not measured; PZT4 spot on

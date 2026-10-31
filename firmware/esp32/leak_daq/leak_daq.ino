@@ -1,6 +1,6 @@
 /*
- * Group 32 - Aircraft Hydraulic Leak Detection - ESP32 Data Acquisition Firmware (v2)
- * -----------------------------------------------------------------------------------
+ * Group 32 - Aircraft Hydraulic Leak Detection - ESP32 Data Acquisition Firmware (v2.1)
+ * -------------------------------------------------------------------------------------
  * Reads:
  *   - 2x HK2016 pressure sensors (0-1 MPa, 0.5-4.5 V) via ADS1115 (I2C), through 10k/20k dividers
  *   - 5 V sensor rail via ADS1115 A2 (same divider) for ratiometric correction
@@ -14,14 +14,23 @@
  *   $AE,<seq>,<36 comma-separated values>\n   (channel 1 features 1-9, then channel 2, ...)
  * If no STM32 line arrives for 1 s, the AE columns are sent as 0 and a warning line is printed.
  *
- * Serial commands:  Z = tare pressure (pump OFF)   K,<ch>,<val> = flow K-factor (Hz per L/min)
+ * Serial commands:  Z = tare pressure (pump OFF)
+ *                   K,<ch>,<val> = flow K-factor (Hz per L/min), saved in flash
+ *                   N = null flow mismatch: pump ON, all leaks CLOSED. Averages Q1 and Q2 for 30 s,
+ *                       then scales K2 so Q2 matches Q1 and saves it. Needs >= 100 valid samples.
+ *                   P = print settings (K1, K2, pressure zeros, 5 V rail, ADS1115 status)
  *                   A1 / A0 = buzzer on / off (sent by the dashboard)
+ * Every status line starts with '#', so logger.py and the dashboard skip it.
+ * CSV rows keep coming every 100 ms while N runs.
  *
- * Library: "Adafruit ADS1X15" (Arduino Library Manager). Board: ESP32 Dev Module.
+ * v2.1: K-factors stored in flash (Preferences), commands N and P added.
+ * Library: "Adafruit ADS1X15" (Arduino Library Manager); Preferences comes with the ESP32 core.
+ * Board: ESP32 Dev Module.
  */
 
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
+#include <Preferences.h>
 
 // ------------------------- PIN MAP -------------------------
 const int PIN_FLOW1 = 25;      // OF06ZAT #1 (inlet)  yellow wire, 10k pull-up to 3.3 V, 1k + cap filter
@@ -38,13 +47,23 @@ const uint32_t REPORT_MS = 100;
 const uint32_t FLOW_TIMEOUT_US = 3000000;
 const uint32_t AE_STALE_MS = 1000;
 const int N_AE = 36;
+const uint32_t NULL_MS = 30000;      // N: averaging time
+const uint32_t NULL_MIN_SAMPLES = 100;
 
 // Flow K-factor (Hz per L/min). Datasheet value 1.2 is for WATER - calibrate with oil!
-volatile float flowK[2] = {1.2f, 1.2f};
+// Loaded from flash at boot; 1.2 is used only until K is set the first time.
+const float K_DEFAULT = 1.2f;
+volatile float flowK[2] = {K_DEFAULT, K_DEFAULT};
+bool kFromFlash = false;
 
 // ------------------------- GLOBALS -------------------------
 Adafruit_ADS1115 ads;
 bool adsOk = false;
+Preferences prefs;                  // flash namespace "leakdaq", keys "k1", "k2"
+
+bool nullActive = false;            // N in progress
+uint32_t nullStartMs = 0, nullN = 0, nullTotal = 0;
+double nullSum[2] = {0, 0};
 
 volatile uint32_t flowLastUs[2] = {0, 0};
 volatile uint32_t flowPeriodUs[2] = {0, 0};
@@ -99,6 +118,58 @@ void parseStmLine(const String &line) {
   }
 }
 
+void loadK() {
+  prefs.begin("leakdaq", false);                   // read-write: creates the namespace on first boot
+  float k1 = prefs.getFloat("k1", NAN), k2 = prefs.getFloat("k2", NAN);
+  prefs.end();
+  if (k1 > 0 && k2 > 0) { flowK[0] = k1; flowK[1] = k2; kFromFlash = true; }   // NAN fails both tests
+}
+
+void saveK() {
+  prefs.begin("leakdaq", false);
+  prefs.putFloat("k1", flowK[0]);
+  prefs.putFloat("k2", flowK[1]);
+  prefs.end();
+  kFromFlash = true;
+}
+
+void printSettings() {
+  Serial.println("# ---- Settings (leak DAQ v2.1) ----");
+  Serial.printf("# K1 = %.4f  K2 = %.4f Hz per L/min (%s)\n", flowK[0], flowK[1],
+                kFromFlash ? "from flash" : "DEFAULT 1.2, not calibrated");
+  Serial.printf("# P zero: P1 = %.1f  P2 = %.1f kPa%s\n", pZero[0], pZero[1],
+                (pZero[0] == 0 && pZero[1] == 0) ? " (not tared since boot: send Z with pump OFF)" : "");
+  if (adsOk) Serial.printf("# 5V rail: %.3f V%s\n", vSensor[2], vSensor[2] < 4.0f ? " (LOW: pressure uses 5.0 V instead)" : "");
+  else Serial.println("# 5V rail: n/a (ADS1115 not found)");
+  Serial.printf("# ADS1115: %s\n", adsOk ? "OK at 0x48" : "NOT FOUND - check SDA 21 / SCL 22 / ADDR");
+  if (nullActive) Serial.printf("# NULL running: %lu s left\n", (unsigned long)((NULL_MS - (millis() - nullStartMs)) / 1000));
+}
+
+void startNull() {
+  if (nullActive) { Serial.println("# NULL already running"); return; }
+  nullActive = true;
+  nullStartMs = millis();
+  nullN = nullTotal = 0;
+  nullSum[0] = nullSum[1] = 0;
+  Serial.println("# NULL started: 30 s. Keep pump ON and all leaks CLOSED.");
+}
+
+void finishNull() {
+  nullActive = false;
+  if (nullN < NULL_MIN_SAMPLES) {
+    Serial.printf("# NULL FAILED: only %lu of %lu samples had flow on both sensors (need %lu). Pump on? Sensors wired?\n",
+                  (unsigned long)nullN, (unsigned long)nullTotal, (unsigned long)NULL_MIN_SAMPLES);
+    return;
+  }
+  float q1 = nullSum[0] / nullN, q2 = nullSum[1] / nullN;
+  float kOld = flowK[1], kNew = kOld * q2 / q1;      // Q2 = f2 / K2, so this K2 makes Q2 equal Q1
+  flowK[1] = kNew;
+  saveK();
+  Serial.printf("# NULL done (%lu samples): Q1 = %.3f  Q2 = %.3f L/min -> K2 %.4f -> %.4f (%+.1f %%), saved\n",
+                (unsigned long)nullN, q1, q2, kOld, kNew, (kNew / kOld - 1) * 100);
+  if (fabsf(kNew / kOld - 1) > 0.10f) Serial.println("# WARNING: K2 changed more than 10 % - was a leak open? Check with the jug test");
+}
+
 void handleCommand(String c) {
   c.trim();
   if (c.length() == 0) return;
@@ -108,13 +179,20 @@ void handleCommand(String c) {
     Serial2.println("Z");                          // also ask STM32 to tare its AE baseline
     return;
   }
+  if (c == "N") { startNull(); return; }
+  if (c == "P") { printSettings(); return; }
   if (c == "A1") { digitalWrite(PIN_BUZZ, HIGH); return; }
   if (c == "A0") { digitalWrite(PIN_BUZZ, LOW); return; }
   int p1 = c.indexOf(','), p2 = c.indexOf(',', p1 + 1);
   if (c.charAt(0) == 'K' && p1 > 0 && p2 > 0) {
     int ch = c.substring(p1 + 1, p2).toInt();
     float val = c.substring(p2 + 1).toFloat();
-    if (ch >= 1 && ch <= 2 && val > 0) { flowK[ch - 1] = val; Serial.printf("# Flow%d K = %.4f\n", ch, val); return; }
+    if (ch >= 1 && ch <= 2 && val > 0) {
+      flowK[ch - 1] = val;
+      saveK();
+      Serial.printf("# Flow%d K = %.4f (saved)\n", ch, val);
+      return;
+    }
   }
   Serial.println("# ? unknown command");
 }
@@ -147,9 +225,12 @@ void setup() {
   } else {
     Serial.println("# ERROR: ADS1115 not found - check SDA/SCL/ADDR wiring");
   }
+  loadK();
   memset(ae, 0, sizeof(ae));
   delay(200);
-  Serial.println("# Group32 leak DAQ v2 ready. Send Z with pump OFF to tare.");
+  Serial.printf("# K1 = %.4f  K2 = %.4f Hz per L/min (%s)\n", flowK[0], flowK[1],
+                kFromFlash ? "from flash" : "defaults: do the jug test, then K,1,<v> and K,2,<v>");
+  Serial.println("# Group32 leak DAQ v2.1 ready. Send Z with pump OFF to tare. P = settings.");
   Serial.print("t_ms,P1,P2,Q1,Q2,C1,C2");
   const char *f[9] = {"rms", "peak", "p2p", "std", "energy", "crest", "hits", "dur", "fdom"};
   for (int ch = 1; ch <= 4; ch++) for (int k = 0; k < 9; k++) Serial.printf(",AE%d_%s", ch, f[k]);
@@ -189,7 +270,14 @@ void loop() {
     bool aeOk = (nowMs - aeLastMs) < AE_STALE_MS;
     if (!aeOk && !aeWarned) { Serial.println("# WARNING: no AE data from STM32 (check PA9->GPIO16, GND)"); aeWarned = true; }
 
-    Serial.printf("%lu,%.2f,%.2f,%.3f,%.3f,%lu,%lu", nowMs, p[0], p[1], flowLpm(0), flowLpm(1), c1, c2);
+    float q1 = flowLpm(0), q2 = flowLpm(1);
+    if (nullActive) {                               // N: one sample per report, rows keep flowing
+      nullTotal++;
+      if (q1 > 0 && q2 > 0) { nullSum[0] += q1; nullSum[1] += q2; nullN++; }
+      if (nowMs - nullStartMs >= NULL_MS) finishNull();
+    }
+
+    Serial.printf("%lu,%.2f,%.2f,%.3f,%.3f,%lu,%lu", nowMs, p[0], p[1], q1, q2, c1, c2);
     for (int k = 0; k < N_AE; k++) Serial.printf(",%.2f", aeOk ? ae[k] : 0.0f);
     Serial.println();
     digitalWrite(PIN_LED, (nowMs / 500) % 2);
